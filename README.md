@@ -1,2 +1,5 @@
 # pyGT
-Python library for goTenna devices
+An open source Python library for operating goTenna Mesh devices over Bluetooth LE
+
+Requirements:
+  bluepy
