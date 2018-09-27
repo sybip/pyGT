@@ -3,3 +3,13 @@ An unofficial open source Python library for operating goTenna Mesh devices over
 
 Requires:
   bluepy (pip install bluepy)
+
+```
+import gtdevice
+
+gotenna = gtdevice.goTennaDev(MAC)
+gotenna.initialize()
+(resCode, resData) = gotenna.execute(opCode, opData)
+# ...
+gotenna.disconnect()
+```
