@@ -67,11 +67,16 @@ while True:
             try:
                 opCode = int(l, 0)
             except:
-                print "Enter a numeric opcode, 0 - 255, or Ctrl-D to quit:"
+                print "Enter a numeric opcode, 0 - %d, or Ctrl-D to quit:" % gtdevice.OPCODE_MAX
                 opCode = None
                 continue
 
-            print "Got opcode 0x%02x" % opCode
+            if opCode > gtdevice.OPCODE_MAX:
+                print "Opcode %d out of range. Enter to continue" % opCode
+                opCode = None
+                continue
+
+            print "Got opcode 0x%02x (%s)" % (opCode, gtdevice.GT_OP_NAME[opCode])
             print "Enter optional args in valid HEX, or empty if none:"
             continue
 
