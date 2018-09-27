@@ -102,6 +102,7 @@ class goTennaDev(Peripheral, DefaultDelegate):
         self.buf = ""     # temporary buffer for received packet reassembly
         self.res = {}     # numbered boxes for response strings
         self.mwi = 0      # message waiting indication
+        self.withDelegate(self)  # handle notifications ourselves
 
     def initialize(self):
         # List characteristics, search for the three handles

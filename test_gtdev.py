@@ -37,7 +37,6 @@ except:
     sys.exit()
 
 print('CONNECTED')
-gotenna.withDelegate(gotenna)
 
 # Initialize device communication
 print('Initializing...')
