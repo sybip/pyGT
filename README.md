@@ -13,3 +13,5 @@ gotenna.initialize()
 # ...
 gotenna.disconnect()
 ```
+
+Not affiliated with goTenna inc. This software may brick your device and void your warranty. 
