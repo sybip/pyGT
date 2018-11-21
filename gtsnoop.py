@@ -64,7 +64,7 @@ def pduDissect(pdu):
         print "  " + gtdevice.GT_OP_NAME[opCode]
         if len(pdu) > 2:
             print "  DATA: " + hexlify(pdu[2:])
-        if len(pdu) > 5:
+        if len(pdu) >= 5:
             opDissect(opCode, pdu[2:])
         # Visual delimiter
         print "-" * 70
@@ -158,7 +158,7 @@ def parseBTSnoop(filename):
     i = 0
     startTime = None
 
-    print "goTenna protocol packet analyzer\n"
+    print "goTenna Bluetooth protocol analyzer\n"
 
     while True:
         header = f.read(24)  # is the header size
