@@ -20,6 +20,37 @@ debugDUMP = False
 # Reassembly buffer, global to keep it simple (FIXME REFACTOR)
 buf = ""
 
+# Opcodes known to contain/return NON-TLV data
+nonTLVops = [0x04, ]
+
+
+def opDissect(opCode, data):
+    """
+    Analyze a goTenna packet payload and display its elements
+    """
+
+    # Most payloads are TLV formatted (which ones?)
+
+    if len(data) < 3:
+        # Data too short to contain TLVs
+        return
+
+    if opCode in nonTLVops:
+        # No TLVs expected
+        return
+
+    # try TLV parsing
+    while data:
+        try:
+            type, length = unpack('BB', data[:2])
+            value = unpack('%is' % length, data[2:2+length])[0]
+        except:
+            # Fail gracefully
+            print "  -> INVALID_TLV: " + hexlify(data)
+            break
+        print "  -> TYPE_%02x_%02x: " % (opCode, type) + hexlify(value)
+        data = data[2+length:]
+
 
 def pduDissect(pdu):
     """
@@ -30,9 +61,11 @@ def pduDissect(pdu):
     if (opCode < 0x40):
         # is a command (ME->GT)
         print "ME:CMD(%02x): %02x    " % (seqNo, opCode) + hexlify(pdu[2:])
-        print "    " + gtdevice.GT_OP_NAME[opCode]
+        print "  " + gtdevice.GT_OP_NAME[opCode]
         if len(pdu) > 2:
-            print "    DATA: " + hexlify(pdu[2:])
+            print "  DATA: " + hexlify(pdu[2:])
+        if len(pdu) > 5:
+            opDissect(opCode, pdu[2:])
         # Visual delimiter
         print "-" * 70
 
@@ -42,10 +75,12 @@ def pduDissect(pdu):
         opCode = opCode & 0x3f
         print ("GT:RES(%02x): %02x|%02x " % (seqNo, opCode, resCode) +
                hexlify(pdu[2:]))
-        print ("    " + gtdevice.GT_OP_NAME[opCode] + " " +
+        print ("  " + gtdevice.GT_OP_NAME[opCode] + " " +
                ("OK" if resCode == 0x40 else "FAILED"))
         if len(pdu) > 2:
-            print "    DATA: " + hexlify(pdu[2:])
+            print "  DATA: " + hexlify(pdu[2:])
+        if len(pdu) > 5:
+            opDissect(opCode, pdu[2:])
         # Visual delimiter
         print "=" * 70
 
@@ -59,8 +94,10 @@ def bt_receive(raw=""):
 
         global buf
 
-        head = unpack('>H', raw[0:2])[0]
-        tail = unpack('>H', raw[-2:])[0]
+        if len(raw) > 1:  # Avoid the case when a single-byte tail is rcved
+            head = unpack('>H', raw[0:2])[0]
+        else:
+            head = 0
 
         if (head == gtdevice.GT_STX):
             if (len(buf) > 0):
@@ -69,12 +106,14 @@ def bt_receive(raw=""):
         else:
             buf = buf + raw
 
+        tail = unpack('>H', buf[-2:])[0]
+
         if (tail == gtdevice.GT_ETX):
             # strip ETX, PDU is ready to process
             buf = buf[:-2]
 
             # extract sequence number
-            seq = unpack('B', buf[1:2])[0]
+            #seq = unpack('B', buf[1:2])[0]
 
             # unescape 0x10
             buf = buf.replace(b'\x10\x10', '\x10')
@@ -139,7 +178,7 @@ def parseBTSnoop(filename):
             (flags not in [0, 1]) or
             (data[0] != '\x02') or           # Only keep type TYPE_ACL (2)
             (ord(data[9]) not in [0x52, 0x1d, ])):
-            # include 0x1b above to also capture MWI notifs
+                # include 0x1b above to also capture MWI notifs
                 continue
 
         if len(data) < 12:
@@ -152,7 +191,7 @@ def parseBTSnoop(filename):
         if dataLen == totalLen-4 == len(data)-9:
             if debugDUMP:
                 t = ((time64-startTime)/1000)/1000.
-                print (" IN " if flags == 1 else "OUT ") + "%.03f" % t
+                print ("IN  " if flags == 1 else "OUT ") + "%.03f" % t
                 print hexlify(data[0x0c:])
             bt_receive(data[0x0c:])
 
