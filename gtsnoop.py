@@ -99,7 +99,7 @@ def bt_receive(raw=""):
         else:
             head = 0
 
-        if (head == gtdevice.GT_STX):
+        if (head == gtdevice.GT_BLE_STX):
             if (len(buf) > 0):
                 print "WARN: previous unsynced data was lost"
             buf = raw[2:]
@@ -108,7 +108,7 @@ def bt_receive(raw=""):
 
         tail = unpack('>H', buf[-2:])[0]
 
-        if (tail == gtdevice.GT_ETX):
+        if (tail == gtdevice.GT_BLE_ETX):
             # strip ETX, PDU is ready to process
             buf = buf[:-2]
 

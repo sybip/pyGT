@@ -13,8 +13,8 @@ debugPDUS = False
 debugCMDS = False
 
 # start and end of protocol messages
-GT_STX = 0x1002
-GT_ETX = 0x1003
+GT_BLE_STX = 0x1002
+GT_BLE_ETX = 0x1003
 
 # gotenna UUIDs
 GT_UUID_ST = "12762b18-df5e-11e6-bf01-fe55135034f3"
@@ -173,8 +173,8 @@ class goTennaDev(Peripheral, DefaultDelegate):
         txpdu = txpdu.replace(b'\x10', '\x10\x10')
 
         # Add STX, CRC and ETX
-        txpdu = (pack("!H", GT_STX) + txpdu +
-                 pack("!HH", send_crc, GT_ETX))
+        txpdu = (pack("!H", GT_BLE_STX) + txpdu +
+                 pack("!HH", send_crc, GT_BLE_ETX))
 
         if debugPDUS:
             print "Tx PDU: " + hexlify(txpdu)
@@ -220,17 +220,22 @@ class goTennaDev(Peripheral, DefaultDelegate):
         """
         Receives and assembles data packets from notification handler
         """
-        head = unpack('>H', raw[0:2])[0]
-        tail = unpack('>H', raw[-2:])[0]
 
-        if (head == GT_STX):
+        if len(raw) > 1:  # Avoid the case when a single-byte tail is rcved
+            head = unpack('>H', raw[0:2])[0]
+        else:
+            head = 0
+
+        if (head == GT_BLE_STX):
             if (len(self.buf) > 0):
                 print "WARN: previous unsynced data was lost"
             self.buf = raw[2:]
         else:
             self.buf = self.buf + raw
 
-        if (tail == GT_ETX):
+        tail = unpack('>H', self.buf[-2:])[0]
+
+        if (tail == GT_BLE_ETX):
             # strip ETX, PDU is ready to process
             self.buf = self.buf[:-2]
 
