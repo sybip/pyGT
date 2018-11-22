@@ -5,87 +5,16 @@ from struct import pack, unpack
 from bluepy.btle import Peripheral, ADDR_TYPE_RANDOM, DefaultDelegate
 from pycrc16 import crc
 
+from gtdefs import *  # constants, lists and definitions
+
 # Dump GATT operations
 debugGATT = False
+
 # Dump protocol packets
 debugPDUS = False
+
 # Dump command/result
 debugCMDS = False
-
-# start and end of protocol messages
-GT_BLE_STX = 0x1002
-GT_BLE_ETX = 0x1003
-
-# gotenna UUIDs
-GT_UUID_ST = "12762b18-df5e-11e6-bf01-fe55135034f3"
-GT_UUID_TX = "1276b20a-df5e-11e6-bf01-fe55135034f3"
-GT_UUID_RX = "1276b20b-df5e-11e6-bf01-fe55135034f3"
-
-# Known goTenna opcodes (from traffic analysis, CLI fuzzing etc)
-OP_FLASH   = 0x00    # Blink the light 3 times to help locate
-OP_SET_GID = 0x01    # Set GID on device
-OP_SET_PUB = 0x02    # Upload public key (don't know why)
-OP_SENDMSG = 0x03    # Send a message (shout, direct, key exch etc)
-OP_SYSINFO = 0x04    # Get system info (serial, version, battery etc)
-OP_READMSG = 0x06    # Read the first message in queue
-OP_NEXTMSG = 0x07    # Delete the first message from queue
-OP_RST_GID = 0x0b    # Reset GID
-OP_DEL_GID = 0x0d    # Delete GID?
-OP_SET_APP = 0x10    # Set App ID
-OP_SET_GEO = 0x21    # Set geopolitical region (1=US)
-OP_GET_GEO = 0x22    # Get geopolitical region
-
-# Max opcode ID
-OPCODE_MAX = 0x2c
-
-# Translating opcodes to names
-GT_OP_NAME = {
-    OP_FLASH: "OP_FLASH",
-    OP_SET_GID: "OP_SET_GID",
-    OP_SET_PUB: "OP_SET_PUB",
-    OP_SENDMSG: "OP_SENDMSG",
-    OP_SYSINFO: "OP_SYSINFO",
-    0x05: "OP_RSVD_05",
-    OP_READMSG: "OP_READMSG",
-    OP_NEXTMSG: "OP_NEXTMSG",
-    0x08: "OP_RSVD_08",
-    0x09: "OP_RSVD_09",
-    0x0a: "OP_RSVD_0A",
-    OP_RST_GID: "OP_RST_GID",
-    0x0c: "OP_RSVD_0C",
-    OP_DEL_GID: "OP_DEL_GID",
-    0x0e: "OP_RSVD_0E",
-    0x0f: "OP_RSVD_0F",
-    0x10: "OP_SET_APP",
-    0x11: "OP_RSVD_11",
-    0x12: "OP_RSVD_12",
-    0x13: "OP_RSVD_13",
-    0x14: "OP_RSVD_14",
-    0x15: "OP_BLE_BER",
-    0x16: "OP_RSVD_16",
-    0x17: "OP_RSVD_17",
-    0x18: "OP_RSVD_18",
-    0x19: "OP_RSVD_19",
-    0x1a: "OP_RSVD_1A",
-    0x1b: "OP_RSVD_1B",
-    0x1c: "OP_RSVD_1C",
-    0x1d: "OP_RSVD_1D",
-    0x1e: "OP_RSVD_1E",
-    0x1f: "OP_RSVD_1F",
-    0x20: "OP_BLE_RST",
-    OP_SET_GEO: "OP_SET_GEO",
-    OP_GET_GEO: "OP_GET_GEO",
-    0x23: "OP_RSVD_23",
-    0x24: "OP_RSVD_24",
-    0x25: "OP_GETPROP",
-    0x26: "OP_GET_FLT",
-    0x27: "OP_GET_DDI",
-    0x28: "OP_RSVD_28",
-    0x29: "OP_MORSE",
-    0x2a: "OP_SCAN_CH",
-    0x2b: "OP_TESTBER",
-    0x2c: "OP_RSVD_2C",
-}
 
 
 class goTennaDev(Peripheral, DefaultDelegate):

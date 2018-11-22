@@ -1,8 +1,10 @@
 #!/usr/bin/python
+
 import binascii
 import sys
 import select
 import gtdevice
+from gtdefs import *  # constants, lists and definitions
 
 # Dump GATT operations
 gtdevice.debugGATT = False
@@ -13,7 +15,7 @@ gtdevice.debugPDUS = False
 # Dump command/result
 gtdevice.debugCMDS = False
 
-print('Manual test for gtdevice library')
+print('Manual test application for gtdevice library')
 
 cliHelpText = "Syntax: " + sys.argv[0] + " MAC_ADDR"
 
@@ -66,16 +68,21 @@ while True:
             try:
                 opCode = int(l, 0)
             except:
-                print "Enter a numeric opcode, 0 - %d, or Ctrl-D to quit:" % gtdevice.OPCODE_MAX
+                print ("Enter a numeric opcode, 0 - %d, or Ctrl-D to quit:"
+                       % GT_OPCODE_MAX)
                 opCode = None
                 continue
 
-            if opCode > gtdevice.OPCODE_MAX:
+            if opCode > GT_OPCODE_MAX:
                 print "Opcode %d out of range. Enter to continue" % opCode
                 opCode = None
                 continue
 
-            print "Got opcode 0x%02x (%s)" % (opCode, gtdevice.GT_OP_NAME[opCode])
+            try:
+                print "Got opcode 0x%02x (%s)" % (opCode, GT_OP_NAME[opCode])
+            except KeyError:
+                print "Got opcode 0x%02x (unknown)" % opCode
+
             print "Enter optional args in valid HEX, or empty if none:"
             continue
 
