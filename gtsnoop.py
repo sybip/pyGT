@@ -165,7 +165,12 @@ def parseBTSnoop(filename):
       from http://tools.ietf.org/html/rfc1761
     """
 
-    f = open(filename, "rb")
+    try:
+        f = open(filename, "rb")
+    except:
+        print "Unable to open file: %s" % filename
+        return
+
     assert f.read(8) == "btsnoop\0"
     version, datalinkType = unpack(">II", f.read(8))
     assert version == 1, version
@@ -173,8 +178,6 @@ def parseBTSnoop(filename):
 
     i = 0
     startTime = None
-
-    print "goTenna Bluetooth protocol analyzer\n"
 
     while True:
         header = f.read(24)  # is the header size
@@ -217,15 +220,18 @@ def parseBTSnoop(filename):
     return i
 
 
-def main(filename):
-    """
-    Parse a btsnoop log
-    """
-    parseBTSnoop(filename)
+def giveHelp():
+    print "\ngoTenna Bluetooth protocol analyzer"
+    print "\nUsage: %s filename\n" % sys.argv[0]
+
+
+def main():
+    if len(sys.argv) >= 2:
+        parseBTSnoop(sys.argv[1])
+    else:
+        giveHelp()
+        sys.exit(-1)
 
 
 if __name__ == "__main__":
-    if len(sys.argv) == 2:
-        main(sys.argv[1])
-    else:
-        sys.exit(-1)
+    main()
