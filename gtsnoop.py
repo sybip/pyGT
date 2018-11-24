@@ -10,15 +10,13 @@ from binascii import hexlify
 from struct import unpack
 from pycrc16 import crc
 from gtdefs import *  # constants, lists and definitions
+from gtdevice import gtBtReAsm
 
 # Dump protocol packets
 debugPDUS = False
 
 # Make dump parsing (even more) verbose
 debugDUMP = False
-
-# Reassembly buffer, global to keep it simple (FIXME REFACTOR)
-buf = ""
 
 # Opcodes known to contain/return NON-TLV data
 nonTLVops = [0x04, ]
@@ -101,59 +99,6 @@ def pduDissect(pdu):
         print "=" * 70
 
 
-def bt_receive(raw=""):
-        """
-        Receives and assembles data packets
-        """
-        # FIXME! REFACTOR
-        # This is a nearly identical copy of gtdevice.receive
-
-        global buf
-
-        if len(raw) > 1:  # Avoid the case when a single-byte tail is rcved
-            head = unpack('>H', raw[0:2])[0]
-        else:
-            head = 0
-
-        if (head == GT_BLE_STX):
-            if (len(buf) > 0):
-                print "WARN: previous unsynced data was lost"
-            buf = raw[2:]
-        else:
-            buf = buf + raw
-
-        tail = unpack('>H', buf[-2:])[0]
-
-        if (tail == GT_BLE_ETX):
-            # strip ETX, PDU is ready to process
-            buf = buf[:-2]
-
-            # extract sequence number
-            #seq = unpack('B', buf[1:2])[0]
-
-            # unescape 0x10
-            buf = buf.replace(b'\x10\x10', '\x10')
-
-            # extract and verify crc
-            wantcrc = unpack('!H', buf[-2:])[0]
-            havecrc = crc(buf[:-2])
-            if wantcrc != havecrc:
-                print ("ERROR: CRC failed, want=%04x, have=%04x" %
-                       (wantcrc, havecrc))
-                print "for string=" + hexlify(buf[:-2])
-                return False
-
-            # Debug dump
-            if debugPDUS:
-                # FIXME! CHEATING + HARDCODED
-                print "Rx PDU: " + "1002" + hexlify(buf) + "1003"
-
-            # DON'T post the PDU in the numbered box for collection
-            # Instead, pass it to PDU dissector
-            pduDissect(buf[:-2])
-            buf = ""
-
-
 def parseBTSnoop(filename):
     """
     Parse btsnoop_hci.log binary data
@@ -178,6 +123,12 @@ def parseBTSnoop(filename):
 
     i = 0
     startTime = None
+
+    # Bluetooth frame reassembly
+    frag = gtBtReAsm()
+
+    # Pass packet to pduDissect when complete
+    frag.packetHandler=pduDissect
 
     while True:
         header = f.read(24)  # is the header size
@@ -212,7 +163,9 @@ def parseBTSnoop(filename):
                 t = ((time64-startTime)/1000)/1000.
                 print ("IN  " if flags == 1 else "OUT ") + "%.03f" % t
                 print hexlify(data[0x0c:])
-            bt_receive(data[0x0c:])
+
+            # send frame to packet reassembly routine
+            frag.receiveFrame(data[0x0c:])
 
         i += 1
 
@@ -221,7 +174,7 @@ def parseBTSnoop(filename):
 
 
 def giveHelp():
-    print "\ngoTenna Bluetooth protocol analyzer"
+    print "\ngoTenna Bluetooth API protocol analyzer"
     print "\nUsage: %s filename\n" % sys.argv[0]
 
 

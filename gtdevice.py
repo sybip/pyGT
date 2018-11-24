@@ -17,6 +17,65 @@ debugPDUS = False
 debugCMDS = False
 
 
+class gtBtReAsm():
+    """
+    Reassembly helper for Bluetooth frames
+    """
+    def __init__(self, preload=""):
+        self.buf = preload
+
+    def receiveFrame(self, raw=""):
+        """
+        Receives frames and assembles data packets
+        """
+
+        if len(raw) > 1:  # Avoid the case when a single-byte tail is rcved
+            head = unpack('>H', raw[0:2])[0]
+        else:
+            head = 0
+
+        if (head == GT_BLE_STX):
+            if (len(self.buf) > 0):
+                print "WARN: previous unsynced data was lost"
+            self.buf = raw[2:]
+        else:
+            self.buf = self.buf + raw
+
+        tail = unpack('>H', self.buf[-2:])[0]
+
+        if (tail == GT_BLE_ETX):
+            # strip ETX, PDU is ready to process
+            self.buf = self.buf[:-2]
+
+            # extract sequence number
+            seq = ord(self.buf[1])
+
+            # unescape 0x10
+            self.buf = self.buf.replace(b'\x10\x10', '\x10')
+
+            # extract and verify crc
+            wantcrc = unpack('!H', self.buf[-2:])[0]
+            havecrc = crc(self.buf[:-2])
+            if wantcrc != havecrc:
+                print ("ERROR: CRC failed, want=%04x, have=%04x" %
+                       (wantcrc, havecrc))
+                print "for string=" + hexlify(self.buf[:-2])
+                return False
+
+            # Debug dump
+            if debugPDUS:
+                # FIXME! CHEATING + HARDCODED
+                print "Rx PDU: " + "1002" + hexlify(self.buf) + "1003"
+
+            # post the PDU in the numbered box for collection
+            self.packetHandler(self.buf[:-2])
+            self.buf = ""
+
+    def packetHandler(self, packet):
+        print "unhandled packet"
+
+
+
 class goTennaDev(Peripheral, DefaultDelegate):
     """
     GoTenna device operations
@@ -28,10 +87,13 @@ class goTennaDev(Peripheral, DefaultDelegate):
         self.hndTx = 0
         self.hndRx = 0
         self.seq = 0      # protocol sequence, 1-byte rolling
-        self.buf = ""     # temporary buffer for received packet reassembly
         self.res = {}     # numbered boxes for response strings
         self.mwi = 0      # message waiting indication
         self.withDelegate(self)  # handle notifications ourselves
+
+        # Bluetooth frame reassembly
+        self.frag = gtBtReAsm()
+        self.frag.packetHandler=self.receivePacket
 
     def initialize(self):
         # List characteristics, search for the three handles
@@ -145,52 +207,13 @@ class goTennaDev(Peripheral, DefaultDelegate):
         # return in an array - result code and data PDU
         return (code, data)
 
-    def receive(self, raw=""):
-        """
-        Receives and assembles data packets from notification handler
-        """
+    def receivePacket(self, buf=""):
+        # called from the packet reassembler when full packet received
 
-        if len(raw) > 1:  # Avoid the case when a single-byte tail is rcved
-            head = unpack('>H', raw[0:2])[0]
-        else:
-            head = 0
-
-        if (head == GT_BLE_STX):
-            if (len(self.buf) > 0):
-                print "WARN: previous unsynced data was lost"
-            self.buf = raw[2:]
-        else:
-            self.buf = self.buf + raw
-
-        tail = unpack('>H', self.buf[-2:])[0]
-
-        if (tail == GT_BLE_ETX):
-            # strip ETX, PDU is ready to process
-            self.buf = self.buf[:-2]
-
-            # extract sequence number
-            seq = unpack('B', self.buf[1:2])[0]
-
-            # unescape 0x10
-            self.buf = self.buf.replace(b'\x10\x10', '\x10')
-
-            # extract and verify crc
-            wantcrc = unpack('!H', self.buf[-2:])[0]
-            havecrc = crc(self.buf[:-2])
-            if wantcrc != havecrc:
-                print ("ERROR: CRC failed, want=%04x, have=%04x" %
-                       (wantcrc, havecrc))
-                print "for string=" + hexlify(self.buf[:-2])
-                return False
-
-            # Debug dump
-            if debugPDUS:
-                # FIXME! CHEATING + HARDCODED
-                print "Rx PDU: " + "1002" + hexlify(self.buf) + "1003"
-
-            # post the PDU in the numbered box for collection
-            self.res[seq] = self.buf[:-2]
-            self.buf = ""
+        # extract sequence number
+        seq = ord(buf[1])
+        # post the PDU in the numbered box for collection
+        self.res[seq] = buf
 
     def mwiChange(self):
         # called on new message waiting indication
@@ -211,6 +234,7 @@ class goTennaDev(Peripheral, DefaultDelegate):
         elif hnd == self.hndRx:
             if debugGATT:
                 print "Rcvd data: " + hexlify(data)
-            self.receive(data)
+            # self.receive(data)
+            self.frag.receiveFrame(data)
         else:
             print "WARN: Rcvd via unknown hnd %x: " % hnd + hexlify(data)
