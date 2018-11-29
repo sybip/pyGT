@@ -101,6 +101,27 @@ GT_OP_NAME = {
 # 3a) API object level (non-message) - some data object defs go in here
 #
 
+# Geopolitical Region IDs; based on pointing FakeGPS at major cities
+GT_REGION_US = 1        # "ITU 2" North America, default and fallback
+GT_REGION_EU = 2        # "ITU 1" European Union
+# region 3 not found
+GT_REGION_AU = 4        # "ITU 3" Australia
+GT_REGION_NZ = 5        # "ITU 3" New Zealand
+# regions 6-7 not found
+GT_REGION_JP = 8        # "ITU 3" Japan
+
+# Reverse translation
+GT_REGION_NAME = {
+    1: "North America",
+    2: "European Union",
+    4: "Australia",
+    5: "New Zealand",
+    8: "Japan",
+}
+
+# TLVs for API calls
+API_TLV_REGION = 0x1f   # used by OP_SET_GEO and OP_GET_GEO
+
 
 #
 # 3b) Message envelope level - main message object components, which
@@ -120,7 +141,7 @@ MSG_CLASS_EMERG = 3     # Emergency message
 
 # Translating class IDs to human names
 MSG_CLASS_NAME = {
-    MSG_CLASS_P2P:   "P2P",
+    MSG_CLASS_P2P:   "P-2-P",
     MSG_CLASS_GROUP: "GROUP",
     MSG_CLASS_SHOUT: "SHOUT",
     MSG_CLASS_EMERG: "EMERG",
