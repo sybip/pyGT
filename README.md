@@ -14,4 +14,6 @@ gotenna.initialize()
 gotenna.disconnect()
 ```
 
+For more information about the devices, formats and protocols, visit the [pyGT project wiki](https://github.com/sybip/pyGT/wiki).
+
 Not affiliated with goTenna inc. This software may brick your device and void your warranty. 
