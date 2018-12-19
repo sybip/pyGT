@@ -153,11 +153,15 @@ MSG_CLASS_NAME = {
 MESG_TLV_0x04 = 0x04    # (R,T) Undoc, required in some cases
 MESG_TLV_DATA = 0x05    # (R,T) Main section: sender, body, payloads
 MESG_TLV_DEST = 0x06    # (R,T) Message class and dest (GID or all)
-MESG_TLV_HOPS = 0x20    # (R) Rx'd msg hops count (set by device from MXRX)
+MESG_TLV_HOPS = 0x20    # (R,A) Rx'd msg hops count
 MESG_TLV_DLR  = 0x21    # (R) Delivery report (created by device)
 MESG_TLV_TTL  = 0x22    # (T) Message TTL (set by sender app)
 MESG_TLV_MXRX = 0x23    # (air only) Mesh metadata RX (stripped by device)
 MESG_TLV_MXTX = 0x24    # (air only) Mesh metadata TX (appended by device)
+
+# Special case, the header object is nested inside the DATA element
+#  It's a second-tier TLV, but still MANDATORY for all applications
+MESG_TLV_HEAD = 0xfb    # Message header object
 
 # Reverse translation
 MSG_TLV_NAME = {
@@ -169,7 +173,9 @@ MSG_TLV_NAME = {
     MESG_TLV_TTL:  "TTL ",
     MESG_TLV_MXRX: "MXRX",
     MESG_TLV_MXTX: "MXTX",
+    MESG_TLV_HEAD: "HEAD",
 }
+
 
 
 #
@@ -177,3 +183,20 @@ MSG_TLV_NAME = {
 #     on the goTenna device
 # FOR INTEROP PURPOSES ONLY - NOT A REQUIREMENT FOR NEW APPLICATIONS
 #
+
+MSGB_TLV_TYPE = 0x01    # Message type, a %d string of a number(!)
+MSGB_TLV_NICK = 0x03    # Message sender nickname
+MSGB_TLV_TEXT = 0x04    # Message body text
+MSGB_TLV_GDST = 0x05    # Destination GID in group messages
+MSGB_TLV_LCTN = 0x06    # Location object
+MSGB_TLV_PUBK = 0xfc    # Public key object
+
+# Reverse translation
+MSGB_TLV_NAME = {
+    MSGB_TLV_TYPE: "TYPE",
+    MSGB_TLV_NICK: "NICK",
+    MSGB_TLV_TEXT: "TEXT",
+    MSGB_TLV_GDST: "GDST",
+    MSGB_TLV_LCTN: "LCTN",
+    MSGB_TLV_PUBK: "PUBK",
+}
