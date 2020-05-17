@@ -23,57 +23,57 @@ class gtBtReAsm():
     """
     def __init__(self, preload=""):
         self.buf = preload
+        self.esc = False  # Escape char indicator
 
     def receiveFrame(self, raw=""):
         """
         Receives frames and assembles data packets
         """
 
-        if len(raw) > 1:  # Avoid the case when a single-byte tail is rcved
-            head = unpack('>H', raw[0:2])[0]
-        else:
-            head = 0
+        for i in range(len(raw)):
+            if not self.esc:
+                if raw[i] == '\x10':
+                    self.esc = True
+                else:
+                    self.buf = self.buf + raw[i]  # Just a normal byte
 
-        if (head == GT_BLE_STX):
-            if (len(self.buf) > 0):
-                print "WARN: previous unsynced data was lost"
-            self.buf = raw[2:]
-        else:
-            self.buf = self.buf + raw
+            else:
+                self.esc = False  # Disarm
 
-        tail = unpack('>H', self.buf[-2:])[0]
+                if raw[i] == '\x10':
+                    self.buf = self.buf + raw[i]
 
-        if (tail == GT_BLE_ETX):
-            # strip ETX, PDU is ready to process
-            self.buf = self.buf[:-2]
+                elif raw[i] == '\x02':  # STX
+                    if (len(self.buf) > 0):
+                        print("WARN: previous unsynced data was lost")
+                        print(hexlify(self.buf))
+                        self.buf = ''
 
-            # extract sequence number
-            seq = ord(self.buf[1])
+                elif raw[i] == '\x03':  # ETX
 
-            # unescape 0x10
-            self.buf = self.buf.replace(b'\x10\x10', '\x10')
+                    # extract sequence number
+                    #seq = ord(self.buf[1])
 
-            # extract and verify crc
-            wantcrc = unpack('!H', self.buf[-2:])[0]
-            havecrc = crc(self.buf[:-2])
-            if wantcrc != havecrc:
-                print ("ERROR: CRC failed, want=%04x, have=%04x" %
-                       (wantcrc, havecrc))
-                print "for string=" + hexlify(self.buf[:-2])
-                return False
+                    # extract and verify crc
+                    wantcrc = unpack('!H', self.buf[-2:])[0]
+                    havecrc = crc(self.buf[:-2])
+                    if wantcrc != havecrc:
+                        print("ERROR: CRC failed, want=%04x, have=%04x" %
+                              (wantcrc, havecrc))
+                        print("for string=" + hexlify(self.buf[:-2]))
+                        return False
 
-            # Debug dump
-            if debugPDUS:
-                # FIXME! CHEATING + HARDCODED
-                print "Rx PDU: " + "1002" + hexlify(self.buf) + "1003"
+                    # Debug dump
+                    if debugPDUS:
+                        # FIXME! CHEATING + HARDCODED
+                        print("Rx PDU: " + "1002" + hexlify(self.buf) + "1003")
 
-            # post the PDU in the numbered box for collection
-            self.packetHandler(self.buf[:-2])
-            self.buf = ""
+                    # post the PDU in the numbered box for collection
+                    self.packetHandler(self.buf[:-2])
+                    self.buf = ''
 
     def packetHandler(self, packet):
-        print "unhandled packet"
-
+        print("unhandled packet")
 
 
 class goTennaDev(Peripheral, DefaultDelegate):
@@ -93,16 +93,16 @@ class goTennaDev(Peripheral, DefaultDelegate):
 
         # Bluetooth frame reassembly
         self.frag = gtBtReAsm()
-        self.frag.packetHandler=self.receivePacket
+        self.frag.packetHandler = self.receivePacket
 
     def initialize(self):
         # List characteristics, search for the three handles
         if debugGATT:
-            print "Enumerating characteristics:"
+            print("Enumerating characteristics:")
         for s in self.getCharacteristics():
             if debugGATT:
-                print ("  %04x-%04x (%02x): %s" %
-                       (s.handle, s.valHandle, s.properties, s.uuid))
+                print("  %04x-%04x (%02x): %s" %
+                      (s.handle, s.valHandle, s.properties, s.uuid))
             if s.uuid == GT_UUID_ST:
                 self.hndSt = s.valHandle
             elif s.uuid == GT_UUID_TX:
@@ -111,31 +111,31 @@ class goTennaDev(Peripheral, DefaultDelegate):
                 self.hndRx = s.valHandle
 
         if debugGATT:
-            print ("HANDLES: hndSt=%x, hndTx=%x, hndRx=%x" %
-                   (self.hndSt, self.hndTx, self.hndRx))
+            print("HANDLES: hndSt=%x, hndTx=%x, hndRx=%x" %
+                  (self.hndSt, self.hndTx, self.hndRx))
 
         # Any handles missing, bail out
         if self.hndSt == 0 or self.hndTx == 0 or self.hndRx == 0:
-            print "ERROR: Could not locate all handles"
+            print("ERROR: Could not locate all handles")
             return False
 
         # Activate indication handles
         try:
             if debugGATT:
-                print "write: 0x%04x 0200" % (self.hndRx+1)
-            self.writeCharacteristic(self.hndRx+1, "\x02\x00", True)
+                print ("write: 0x%04x 0200" % (self.hndRx+1))
+            self.writeCharacteristic(self.hndRx+1, b'\x02\x00', True)
         except:
-            print "ERROR: hndRx activation failed"
+            print("ERROR: hndRx activation failed")
             return False
         # clear notifications
         self.waitForNotifications(.5)
 
         try:
             if debugGATT:
-                print "write: 0x%04x 0100 " % (self.hndSt+1)
-            self.writeCharacteristic(self.hndSt+1, "\x01\x00", True)
+                print("write: 0x%04x 0100 " % (self.hndSt+1))
+            self.writeCharacteristic(self.hndSt+1, b'\x01\x00', True)
         except:
-            print "ERROR: hndSt activation failed"
+            print("ERROR: hndSt activation failed")
             return False
         # clear notifications
         self.waitForNotifications(.5)
@@ -153,7 +153,7 @@ class goTennaDev(Peripheral, DefaultDelegate):
             self.seq = 0x11
 
         if debugCMDS:
-            print "CMD: %02x " % opcode + hexlify(data)
+            print("CMD: %02x " % opcode + hexlify(data))
 
         txpdu = pack("BB", opcode & 0xff, self.seq) + data
 
@@ -168,19 +168,19 @@ class goTennaDev(Peripheral, DefaultDelegate):
                  pack("!HH", send_crc, GT_BLE_ETX))
 
         if debugPDUS:
-            print "Tx PDU: " + hexlify(txpdu)
+            print("Tx PDU: " + hexlify(txpdu))
 
         # Fragmentation happens here
         sendpos = 0
         while sendpos < len(txpdu):
             if debugGATT:
-                print "Xmit data: " + hexlify(txpdu[sendpos:sendpos+20])
+                print("Xmit data: " + hexlify(txpdu[sendpos:sendpos+20]))
             try:
                 self.writeCharacteristic(self.hndTx,
                                          txpdu[sendpos:sendpos+20],
                                          False)
             except:
-                print "WARN: Xmit Data Failed"
+                print("WARN: Xmit Data Failed")
                 return False
             sendpos = sendpos+20
 
@@ -202,7 +202,7 @@ class goTennaDev(Peripheral, DefaultDelegate):
         data = data[2:]
 
         if debugCMDS:
-            print "RES: %02x " % code + hexlify(data)
+            print("RES: %02x " % code + hexlify(data))
 
         # return in an array - result code and data PDU
         return (code, data)
@@ -217,7 +217,8 @@ class goTennaDev(Peripheral, DefaultDelegate):
 
     def mwiChange(self):
         # called on new message waiting indication
-        print "MWI has been raised"
+        if debugCMDS:
+            print("MWI has been raised")
 
     def handleNotification(self, hnd, data):
         """
@@ -225,7 +226,7 @@ class goTennaDev(Peripheral, DefaultDelegate):
         """
         if hnd == self.hndSt:
             if debugGATT:
-                print "Rcvd status: " + hexlify(data)
+                print("Rcvd status: " + hexlify(data))
             (want_mwi,) = unpack('B', data)
             if self.mwi != want_mwi:
                 self.mwi = want_mwi
@@ -233,8 +234,8 @@ class goTennaDev(Peripheral, DefaultDelegate):
 
         elif hnd == self.hndRx:
             if debugGATT:
-                print "Rcvd data: " + hexlify(data)
+                print("Rcvd data: " + hexlify(data))
             # self.receive(data)
             self.frag.receiveFrame(data)
         else:
-            print "WARN: Rcvd via unknown hnd %x: " % hnd + hexlify(data)
+            print("WARN: Rcvd via unknown hnd %x: " % hnd + hexlify(data))
