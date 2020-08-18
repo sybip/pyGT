@@ -157,15 +157,16 @@ class goTennaDev(Peripheral, DefaultDelegate):
 
         txpdu = pack("BB", opcode & 0xff, self.seq) + data
 
-        # Calculate crc pre-escaping
+        # Calculate and append crc pre-escaping
         send_crc = crc(txpdu)
+        txpdu += pack("!H", send_crc)
 
         # \x10 characters must be escaped as \x10 \x10
         txpdu = txpdu.replace(b'\x10', '\x10\x10')
 
         # Add STX, CRC and ETX
         txpdu = (pack("!H", GT_BLE_STX) + txpdu +
-                 pack("!HH", send_crc, GT_BLE_ETX))
+                 pack("!H", GT_BLE_ETX))
 
         if debugPDUS:
             print("Tx PDU: " + hexlify(txpdu))
@@ -184,7 +185,7 @@ class goTennaDev(Peripheral, DefaultDelegate):
                 return False
             sendpos = sendpos+20
 
-            while self.waitForNotifications(1.0):
+            while self.waitForNotifications(0.5):
                 pass
 
         # check numbered box for a response
