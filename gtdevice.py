@@ -185,8 +185,12 @@ class goTennaDev(Peripheral, DefaultDelegate):
                 return False
             sendpos = sendpos+20
 
-            while self.waitForNotifications(0.5):
-                pass
+        # wait for a response while polling for notifications
+        #   but no longer than 5 seconds (10 * 0.5)
+        for i in range(10):
+            self.waitForNotifications(0.5)
+            if self.seq in self.res:
+                break
 
         # check numbered box for a response
         try:
