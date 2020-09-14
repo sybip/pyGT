@@ -34,13 +34,6 @@ def _update_crc(crc, c):
 
 def crc(str):
     crc = PRESET
-    for c in str:
-        crc = _update_crc(crc, ord(c))
-    return crc
-
-
-def crcb(*i):
-    crc = PRESET
-    for c in i:
+    for c in bytearray(str):
         crc = _update_crc(crc, c)
     return crc
