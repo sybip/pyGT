@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import binascii
+from binascii import hexlify, unhexlify
 import sys
 import select
 import gtdevice
@@ -20,11 +20,11 @@ print('Manual test application for gtdevice library')
 cliHelpText = "Syntax: " + sys.argv[0] + " MAC_ADDR"
 
 if (len(sys.argv) < 2):
-    print cliHelpText
+    print(cliHelpText)
     sys.exit()
 
 if (len(sys.argv[1]) < 17):
-    print cliHelpText
+    print(cliHelpText)
     sys.exit()
 
 # Pick up MAC address from command line
@@ -35,7 +35,7 @@ print('Connecting to ' + MAC + '...')
 try:
     gotenna = gtdevice.goTennaDev(MAC)
 except:
-    print 'Connection FAILED, exiting'
+    print('Connection FAILED, exiting')
     sys.exit()
 
 print('CONNECTED')
@@ -43,10 +43,10 @@ print('CONNECTED')
 # Initialize device communication
 print('Initializing...')
 if not gotenna.initialize():
-    print "Initialization failed"
+    print("Initialization failed")
     sys.exit()
 
-print "READY. Press Enter to continue"
+print("READY. Press Enter to continue")
 
 opCode = None
 opData = None
@@ -60,7 +60,7 @@ while True:
         if l:
             l = l.rstrip()
         else:
-            print "End of input, will exit."
+            print("End of input, will exit.")
             break
 
         # Read numeric opcode first
@@ -74,46 +74,46 @@ while True:
                 continue
 
             if opCode > GT_OPCODE_MAX:
-                print "Opcode %d out of range. Enter to continue" % opCode
+                print("Opcode %d out of range. Enter to continue" % opCode)
                 opCode = None
                 continue
 
             try:
-                print "Got opcode 0x%02x (%s)" % (opCode, GT_OP_NAME[opCode])
+                print("Got opcode 0x%02x (%s)" % (opCode, GT_OP_NAME[opCode]))
             except KeyError:
-                print "Got opcode 0x%02x (unknown)" % opCode
+                print("Got opcode 0x%02x (unknown)" % opCode)
 
-            print "Enter optional args in valid HEX, or empty if none:"
+            print("Enter optional args in valid HEX, or empty if none:")
             continue
 
         else:
             # Reading optional HEX arguments
             try:
-                opData = binascii.unhexlify(l)
+                opData = unhexlify(l)
             except:
-                print "Invalid HEX value. Press Enter to continue."
+                print("Invalid HEX value. Press Enter to continue.")
                 opCode = None
                 opData = ""
                 continue
 
             result = gotenna.execute(opCode, opData)
             if (result):
-                print ('ALL OK' if result[0] == 0x40 else 'FAILED')
-                print "Result: " + binascii.hexlify(result[1])
+                print('ALL OK' if result[0] == 0x40 else 'FAILED')
+                print("Result: " + hexlify(result[1]).decode())
             else:
-                print "ERROR: command not executed"
+                print("ERROR: command not executed")
 
             opCode = None
-            print "Press Enter to continue."
+            print("Press Enter to continue.")
 
     try:
         gotenna.waitForNotifications(0.1)
     except:
-        print "ERROR: Exception in main loop, exiting"
+        print("ERROR: Exception in main loop, exiting")
         break
 
-print "DISCONNECTING"
+print("DISCONNECTING")
 gotenna.disconnect()
 del gotenna
 
-print "Goodbye"
+print("Goodbye")
