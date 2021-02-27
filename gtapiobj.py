@@ -1,4 +1,5 @@
 """ goTenna API objects - part of pyGT https://github.com/sybip/pyGT """
+""" WARNING: not to be confused with gtairobj.py ("air" radio objects) """
 
 from struct import pack, unpack
 from binascii import hexlify, unhexlify
@@ -53,7 +54,7 @@ def gtReadAPIMsg(msgPDU, verbose=1):
         if type == MESG_TLV_DEST:        # Destination element
             (msg['classID'], msg['appID']) = unpack("!BH", value[:3])
 
-            if msg['classID'] not in (0x02, 0x03):
+            if msg['classID'] in (MSG_CLASS_P2P, MSG_CLASS_GROUP):
                 # Non-broadcast messages have a destination address:
                 #   extract 6-byte destGID and 1-byte dest tag
                 # (there's no unpack template for 48-bit numbers, so we
