@@ -15,8 +15,8 @@ def tlvRead(data):
             type, length = unpack('BB', data[:2])
             value = unpack('%is' % length, data[2:2+length])[0]
         except:
-            print("WW: Invalid TLV: " + hexlify(data).decode())
-            break
+            raise ValueError('Invalid TLV')
+
         yield type, length, value
         data = data[2+length:]
 
