@@ -30,8 +30,8 @@ def gtMakeAPIMsg(msgBlob, msgClass, msgAppID, fromGID, destGID=0, destTag=0,
 
     # 3) Assemble the PDU: Dest, 0x04, Data (Head + Blob), Mesh TTL
     msgFullPDU = tlvPack(MESG_TLV_DEST, msgDest)
-    if msgClass in (MSG_CLASS_P2P, MSG_CLASS_GROUP):
-        # Element 0x04 only in addressed messages
+    if msgClass == MSG_CLASS_P2P:
+        # Element 0x04 only in P2P messages
         msgFullPDU += tlvPack(0x04, b'\xff\x00\x00')
     msgFullPDU += tlvPack(MESG_TLV_DATA, msgHeadTLV + msgBlob)
     msgFullPDU += tlvPack(MESG_TLV_TTL,  pack('B', meshTTL))

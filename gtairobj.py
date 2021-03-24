@@ -30,8 +30,8 @@ def gtMakeAirMsg(msgBlob, msgClass, msgAppID, fromGID, destGID=0, destTag=0,
 
     # 3) Assemble the PDU: Dest, 0x04, Data (Head + Blob), Mesh TTL
     msgFullPDU = msgDest
-    if msgClass in (MSG_CLASS_P2P, MSG_CLASS_GROUP):
-        # Element 0x04 only in addressed messages
+    if msgClass == MSG_CLASS_P2P:
+        # Element 0x04 only in P2P messages
         msgFullPDU += b'\xff\x00\x00'
     msgFullPDU += msgHeadTLV + msgBlob
 
@@ -55,8 +55,12 @@ def gtReadAirMsg(msgPDU, verbose=1):
         #  unpack AppID+GID as a 64-bit number and mask out AppID)
         msg['destGID'] = unpack('!Q', msgPDU[1:9])[0] & 0xffffffffffff
         msg['destTag'] = bytearray(msgPDU)[9]
-        msg['tlv_04'] = msgPDU[10:13]
-        headPos = 13  # long DEST element
+        if msg['classID'] == MSG_CLASS_P2P:
+            # Element 04 only in P2P class messages
+            msg['tlv_04'] = msgPDU[10:13]
+            headPos = 13  # long DEST element and element 04
+        else:
+            headPos = 10  # long DEST element, no element 04
 
     (tFB, t10) = unpack('BB', msgPDU[headPos:headPos+2])
     if (tFB != MESG_TLV_HEAD) or (t10 != 0x10):
