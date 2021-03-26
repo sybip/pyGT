@@ -47,4 +47,8 @@ def gtReadGTABlob(blob):
     for type, length, value in tlvRead(blob[:-2]):
         msg[type] = value
 
-    return msg
+    # Check for mandatory subelement MSGB_TLV_TYPE
+    if MSGB_TLV_TYPE in msg:
+        return msg
+
+    return False
